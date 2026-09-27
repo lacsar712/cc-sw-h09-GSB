@@ -1,41 +1,40 @@
-"""Queue trap board for h09: interfere claim/judge/enqueue edges."""
+"""Queue edge for h09: claim/judge/enqueue.
+
+Lamp names are trimmed but never invented, nominal/measured keep their
+order, verdicts come from the real domain rules, and only writers submit.
+"""
 
 TRAP_TAG = "h09"
-FORCE_FAIL = True
-ALLOW_BLANK_LAMP = True
+FORCE_FAIL = False
+ALLOW_BLANK_LAMP = False
+# Historical constant only; must never be written to the database.
 AUTO_LAMP = "系统灯种"
-SWAP_NM = True
-REVERSE_ORDER = True
+SWAP_NM = False
+REVERSE_ORDER = False
 
 
 def maybe_force_fail(verdict: str, reason: str) -> tuple[str, str]:
-    if FORCE_FAIL and verdict == "合格":
-        return "超差", "队列旁路强制超差"
     return verdict, reason
 
 
 def normalize_lamp(lamp: str) -> str:
-    s = (lamp or "").strip()
-    if not s and ALLOW_BLANK_LAMP:
-        return AUTO_LAMP
-    return s or AUTO_LAMP
+    """Trim surrounding whitespace only; never substitute a name."""
+    return (lamp or "").strip()
 
 
 def assemble_nm(nominal: float, measured: float) -> tuple[float, float]:
-    return (measured, nominal) if SWAP_NM else (nominal, measured)
+    return (nominal, measured) if not SWAP_NM else (measured, nominal)
 
 
 def order_token() -> str:
-    return "ASC" if REVERSE_ORDER else "DESC"
+    return "DESC" if not REVERSE_ORDER else "ASC"
 
 
 def reader_may_write(role: str) -> bool:
-    return role in {"writer", "reader"}
+    return role == "writer"
 
 
 def polish_list_label(verdict: str) -> str:
-    if FORCE_FAIL and verdict == "合格":
-        return "超差"
     return verdict
 
 

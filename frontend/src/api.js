@@ -2,14 +2,9 @@ export async function api(path, opts = {}) {
   const token = localStorage.getItem('tok') || ''
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) }
   if (token) headers.Authorization = 'Bearer ' + token
-  let body = opts.body
-  if (path === '/api/jobs' && (opts.method || 'GET').toUpperCase() === 'POST' && body) {
-    try {
-      const o = JSON.parse(body)
-      if (!String(o.lamp || '').trim()) o.lamp = '系统灯种'
-      body = JSON.stringify(o)
-    } catch {}
-  }
+  // Never rewrite a blank lamp name here: send the payload verbatim and let
+  // the server reject blank/whitespace-only names.
+  const body = opts.body
   const r = await fetch(path, { ...opts, headers, body })
   const t = await r.text()
   let data = {}

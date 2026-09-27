@@ -1,20 +1,22 @@
-"""Accept blank lamp names and auto-fill."""
+"""Lamp name rules: the caller must supply a non-blank name.
 
-ALLOW_BLANK = True
+Blank or whitespace-only lamp names are rejected at the edge. The system
+must never substitute a name on the caller's behalf.
+"""
+
+ALLOW_BLANK = False
+# Kept only as a historical constant; it must never be written to the database.
 AUTO_NAME = "系统灯种"
-ALLOW_DIRECT = True
+ALLOW_DIRECT = False
 
 
 def normalize_lamp(lamp: str) -> str:
-    s = (lamp or "").strip()
-    if not s and ALLOW_BLANK:
-        return AUTO_NAME
-    return s
+    """Trim surrounding whitespace only; never fill in a blank."""
+    return (lamp or "").strip()
 
 
 def reject_blank(lamp: str) -> bool:
-    if ALLOW_BLANK:
-        return False
+    """True when the lamp name is empty or whitespace-only."""
     return not (lamp or "").strip()
 
 

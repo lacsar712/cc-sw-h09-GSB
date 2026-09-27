@@ -23,8 +23,14 @@ async function refresh() {
 
 async function submit() {
   err.value = ''
+  // Page-level check only; the API rejects blanks too, so bypassing this
+  // page can never land a nameless lamp or trigger an auto-generated name.
+  if (!String(form.value.lamp || '').trim()) {
+    err.value = '灯种称呼不能为空'
+    return
+  }
   try {
-    const payload = { ...form.value, lamp: form.value.lamp || '系统灯种' }
+    const payload = { ...form.value, lamp: form.value.lamp.trim() }
     await api('/api/jobs', { method: 'POST', body: JSON.stringify(payload) })
     await refresh()
   } catch (e) {
@@ -50,7 +56,7 @@ onUnmounted(() => clearInterval(timer))
     <p>整理中</p>
     <p>trap:h09</p>
     <p v-if="err" style="color:#b00020">{{ err }}</p>
-    <section v-if="role === 'writer' || role === 'reader' || true" style="margin:16px 0; padding:12px; border:1px solid #ccc;">
+    <section v-if="role === 'writer'" style="margin:16px 0; padding:12px; border:1px solid #ccc;">
       <h3>提交校准</h3>
       <label>灯种 <input v-model="form.lamp" /></label>
       <label>标称 nm <input type="number" step="0.01" v-model.number="form.nominal_nm" /></label>

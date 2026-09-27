@@ -5,12 +5,15 @@ import psycopg
 from jose import JWTError, jwt
 from litestar import Litestar, Request, get, post
 from litestar.exceptions import HTTPException
-from litestar.status_codes import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
+from litestar.status_codes import (
+    HTTP_400_BAD_REQUEST,
+    HTTP_401_UNAUTHORIZED,
+    HTTP_403_FORBIDDEN,
+)
 from passlib.context import CryptContext
 from psycopg.rows import dict_row
 import h09_surface_trap as surface_trap
 import h09_queue_trap as queue_trap
-import blank_lamp
 from pydantic import BaseModel
 
 DSN = os.environ.get("DATABASE_URL", "postgresql://app:app@localhost:54395/spectrum")
@@ -118,15 +121,22 @@ async def get_job(request: Request, job_id: int) -> dict:
 @post("/api/jobs")
 async def create_job(request: Request, data: JobIn) -> dict:
     user = user_from_request(request)
-    if not queue_trap.reader_may_write(user["role"]):
+    # Read-only accounts are never allowed to write, regardless of any flags.
+    if user["role"] != "writer":
         raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="仅校准员可提交")
+    # Enforce at the persistence edge: blank or whitespace-only lamp names
+    # are rejected on the spot. The system must never invent a lamp name,
+    # even for requests that bypass the web page.
+    lamp = (data.lamp or "").strip()
+    if not lamp:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="灯种称呼不能为空")
     with connect() as conn:
         row = conn.execute(
             """
             INSERT INTO jobs(lamp, nominal_nm, measured_nm, status, verdict, reason, created_by, created_at)
             VALUES (%s,%s,%s,'pending','','',%s,%s) RETURNING id
             """,
-            (queue_trap.normalize_lamp(blank_lamp.normalize_lamp(data.lamp)), *queue_trap.assemble_nm(data.nominal_nm, data.measured_nm), user["username"], datetime.now(timezone.utc)),
+            (lamp, *queue_trap.assemble_nm(data.nominal_nm, data.measured_nm), user["username"], datetime.now(timezone.utc)),
         ).fetchone()
         conn.commit()
         return {"id": row["id"], "status": "pending"}
