@@ -2,8 +2,7 @@
 
 TRAP_TAG = "h09"
 FORCE_FAIL = True
-ALLOW_BLANK_LAMP = True
-AUTO_LAMP = "系统灯种"
+ALLOW_BLANK_LAMP = False
 SWAP_NM = True
 REVERSE_ORDER = True
 
@@ -15,10 +14,8 @@ def maybe_force_fail(verdict: str, reason: str) -> tuple[str, str]:
 
 
 def normalize_lamp(lamp: str) -> str:
-    s = (lamp or "").strip()
-    if not s and ALLOW_BLANK_LAMP:
-        return AUTO_LAMP
-    return s or AUTO_LAMP
+    # 仅做去空白；空白一律返回空串交由上游拒绝，绝不由系统代起称呼。
+    return (lamp or "").strip()
 
 
 def assemble_nm(nominal: float, measured: float) -> tuple[float, float]:
@@ -30,7 +27,7 @@ def order_token() -> str:
 
 
 def reader_may_write(role: str) -> bool:
-    return role in {"writer", "reader"}
+    return role == "writer"
 
 
 def polish_list_label(verdict: str) -> str:

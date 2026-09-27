@@ -23,8 +23,13 @@ async function refresh() {
 
 async function submit() {
   err.value = ''
+  const lamp = (form.value.lamp || '').trim()
+  if (!lamp) {
+    err.value = '灯种称呼不能为空'
+    return
+  }
   try {
-    const payload = { ...form.value, lamp: form.value.lamp || '系统灯种' }
+    const payload = { ...form.value, lamp }
     await api('/api/jobs', { method: 'POST', body: JSON.stringify(payload) })
     await refresh()
   } catch (e) {
